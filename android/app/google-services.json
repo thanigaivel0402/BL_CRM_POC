@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "524871725925",
+    "project_id": "bl-crm-poc",
+    "storage_bucket": "bl-crm-poc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524871725925:android:54712787ba4e47889de78c",
+        "android_client_info": {
+          "package_name": "com.example.bl_crm_poc_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0PVksSO0Q4valbMQ14YHothDP8yPa2z4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
