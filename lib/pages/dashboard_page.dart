@@ -36,7 +36,7 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         backgroundColor: theme.colorScheme.primary,
         title: !_isSearching
-            ? const Text('My Notes')
+            ? const Text('My Notes', style: TextStyle(color: Colors.white))
             : Container(
                 height: 40,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -64,7 +64,10 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
         actions: [
           if (!_isSearching)
-            IconButton(icon: const Icon(Icons.search), onPressed: _startSearch)
+            IconButton(
+              icon: const Icon(Icons.search, color: Colors.white),
+              onPressed: _startSearch,
+            )
           else
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -78,7 +81,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           if (!_isSearching)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(Icons.more_vert, color: Colors.white),
               onSelected: (value) {
                 if (value == 'settings') {
                   debugPrint('Settings selected');
@@ -131,23 +134,20 @@ class _DashboardPageState extends State<DashboardPage> {
             return const Center(child: Text('No notes yet.'));
           }
 
-          return ListView.builder(
-            itemCount: notes.length,
-            itemBuilder: (context, index) {
-              final note = notes[index];
-              return Card(
-                margin: const EdgeInsets.all(8),
-                child: ListTile(
-                  title: Text(note['title'] ?? ''),
-                  subtitle: Text(
-                    note['content'] ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => notesRef.doc(note.id).delete(),
-                  ),
+          // 🧱 Display in Grid View
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, // Two cards per row
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1, // Square-ish cards
+              ),
+              itemCount: notes.length,
+              itemBuilder: (context, index) {
+                final note = notes[index];
+                return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
@@ -160,9 +160,52 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     );
                   },
-                ),
-              );
-            },
+                  child: Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    color: Colors.amber.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            note['title'] ?? 'Untitled',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: Text(
+                              note['content'] ?? '',
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 14,
+                              ),
+                              maxLines: 6,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => notesRef.doc(note.id).delete(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           );
         },
       ),
