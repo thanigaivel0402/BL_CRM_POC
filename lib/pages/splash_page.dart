@@ -1,5 +1,6 @@
 import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -34,8 +35,15 @@ class _SplashPageState extends State<SplashPage>
 
     _controller.forward();
 
+    // 🕐 Navigate to dashboard after animation
     _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {}
+      if (status == AnimationStatus.completed) {
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            context.go('/dashboard'); // ✅ Use GoRouter for navigation
+          }
+        });
+      }
     });
   }
 
