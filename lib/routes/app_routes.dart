@@ -1,4 +1,5 @@
 import 'package:bl_crm_poc_app/pages/dashboard_page.dart';
+import 'package:bl_crm_poc_app/pages/google_sigin_page.dart';
 import 'package:bl_crm_poc_app/pages/splash_page.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +9,11 @@ class AppRoutes {
     routes: [
       GoRoute(path: '/', builder: (context, state) => SplashPage()),
       GoRoute(path: '/dashboard', builder: (context, state) => DashboardPage()),
+      GoRoute(
+      path: '/login',
+      name: 'login',
+      builder: (context, state) => const GoogleSignInPage(),
+    ),
     ],
   );
 }

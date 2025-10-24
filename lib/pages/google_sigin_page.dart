@@ -1,9 +1,12 @@
 
 import 'package:bl_crm_poc_app/pages/google_signin_button.dart';
+import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GoogleSignInPage extends StatefulWidget {
   const GoogleSignInPage({super.key});
@@ -16,6 +19,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
+  
 
   Future<void> signInWithGoogle() async {
     setState(() {
@@ -39,11 +43,11 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
       final userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
 
-      if (!mounted) return;
-      setState(() => user = userCredential.user);
+      SharedPreferences sharedPreferences = await AppPreferences.getInstance();
+      await sharedPreferences.setBool(AppPreferences.isLoggedInKey, true);
 
-      // OPTIONAL: Navigate to home (replace '/home' with your route)
-      // Navigator.of(context).pushReplacementNamed('/home');
+      if (!mounted) return;
+      context.go('/dashboard');
     } catch (e, st) {
       // log if you need
       debugPrint('Google sign-in failed: $e\n$st');
