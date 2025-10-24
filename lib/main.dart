@@ -1,4 +1,3 @@
-import 'package:bl_crm_poc_app/pages/splash_page.dart';
 import 'package:bl_crm_poc_app/routes/app_routes.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +29,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      
-      );
+    );
   }
 }
