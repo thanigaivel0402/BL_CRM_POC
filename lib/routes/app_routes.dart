@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 class AppRoutes {
   static final routes = GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (context, state) => SplashPage()),
       GoRoute(path: '/dashboard', builder: (context, state) => DashboardPage()),
