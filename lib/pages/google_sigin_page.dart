@@ -1,4 +1,3 @@
-
 import 'package:bl_crm_poc_app/pages/google_signin_button.dart';
 import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
@@ -19,7 +18,6 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
-  
 
   Future<void> signInWithGoogle() async {
     setState(() {
@@ -40,11 +38,17 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
         idToken: googleAuth.idToken,
       );
 
-      final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
 
-      SharedPreferences sharedPreferences = await AppPreferences.getInstance();
-      await sharedPreferences.setBool(AppPreferences.isLoggedInKey, true);
+      // record logged-in state
+      await AppPreferences.setLoggedIn(true);
+
+      // optionally save some profile fields as well:
+      // final prefs = await AppPreferences.getInstance(); // not needed now
+      // prefs.setString('user_name', userCredential.user?.displayName ?? '');
+      // prefs.setString('user_photo', userCredential.user?.photoURL ?? '');
 
       if (!mounted) return;
       context.go('/dashboard');
@@ -67,6 +71,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
     try {
       await GoogleSignIn().signOut();
       await FirebaseAuth.instance.signOut();
+      await AppPreferences.setLoggedIn(false);
     } catch (e) {
       debugPrint('Sign out error: $e');
     } finally {
@@ -105,7 +110,10 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     height: 90,
                     width: 90,
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF0072BC), width: 1),
+                      border: Border.all(
+                        color: const Color(0xFF0072BC),
+                        width: 1,
+                      ),
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: ClipRRect(
@@ -155,10 +163,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
 
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.red),
-                    )
+                    Text(_error!, style: const TextStyle(color: Colors.red)),
                   ],
 
                   const SizedBox(height: 8),
