@@ -1,4 +1,5 @@
 
+import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:flutter/material.dart';
 
 class GoogleSignInButton extends StatelessWidget {
@@ -22,7 +23,7 @@ class GoogleSignInButton extends StatelessWidget {
         icon: SizedBox(
           height: 20,
           width: 20,
-          child: Image.asset('assets/google_logo.png'), // add Google logo asset
+          child: Image.asset(Assets.googleLogo), // add Google logo asset
         ),
         label: loading
             ? const SizedBox(
