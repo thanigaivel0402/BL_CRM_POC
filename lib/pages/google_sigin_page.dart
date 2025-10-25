@@ -18,6 +18,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
+  
 
   Future<void> signInWithGoogle() async {
     setState(() {
