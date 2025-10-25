@@ -38,21 +38,23 @@ class _SplashPageState extends State<SplashPage>
     _controller.forward();
 
     // 🕐 Navigate to dashboard after animation
-    _controller.addStatusListener((status) {
+    _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            SharedPreferences.getInstance().then((prefs) {
-              final isLoggedIn =
-                  prefs.getBool(AppPreferences.isLoggedInKey) ?? false;
-              if (isLoggedIn) {
-                context.go('/dashboard'); 
-              } else {
-                context.go('/login'); 
-              }
-            });
-          }
-        });
+        // Add small delay for a smoother transition
+        await Future.delayed(const Duration(seconds: 1));
+
+        if (!mounted) return;
+
+        // Initialize preferences safely
+        await AppPreferences.init();
+        final isLoggedIn = AppPreferences.isLoggedIn();
+
+        // Navigate based on login state
+        if (isLoggedIn) {
+          context.go('/dashboard');
+        } else {
+          context.go('/login');
+        }
       }
     });
   }
