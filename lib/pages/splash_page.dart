@@ -1,6 +1,8 @@
+import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -40,7 +42,15 @@ class _SplashPageState extends State<SplashPage>
       if (status == AnimationStatus.completed) {
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
-            context.go('/dashboard'); // ✅ Use GoRouter for navigation
+            SharedPreferences.getInstance().then((prefs) {
+              final isLoggedIn =
+                  prefs.getBool(AppPreferences.isLoggedInKey) ?? false;
+              if (isLoggedIn) {
+                context.go('/dashboard'); 
+              } else {
+                context.go('/login'); 
+              }
+            });
           }
         });
       }

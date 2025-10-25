@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
+    name: "bl-crm-poc",
     options: FirebaseOptions(
       apiKey: "AIzaSyCNb9hsj3s9Oo9koVqLfxgXZlLpPVn-AQU",
       authDomain: "bl-crm-poc.firebaseapp.com",
