@@ -1,5 +1,8 @@
+import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -34,8 +37,25 @@ class _SplashPageState extends State<SplashPage>
 
     _controller.forward();
 
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {}
+    // 🕐 Navigate to dashboard after animation
+    _controller.addStatusListener((status) async {
+      if (status == AnimationStatus.completed) {
+        // Add small delay for a smoother transition
+        await Future.delayed(const Duration(seconds: 1));
+
+        if (!mounted) return;
+
+        // Initialize preferences safely
+        await AppPreferences.init();
+        final isLoggedIn = AppPreferences.isLoggedIn();
+
+        // Navigate based on login state
+        if (isLoggedIn) {
+          context.go('/dashboard');
+        } else {
+          context.go('/login');
+        }
+      }
     });
   }
 
