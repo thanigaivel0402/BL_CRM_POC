@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "524871725925",
+    "firebase_url": "https://bl-crm-poc-default-rtdb.firebaseio.com",
     "project_id": "bl-crm-poc",
     "storage_bucket": "bl-crm-poc.firebasestorage.app"
   },
@@ -12,7 +13,20 @@
           "package_name": "com.example.bl_crm_poc_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "524871725925-d1veetploh0gqdi0qhlb34i22lci8h66.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bl_crm_poc_app",
+            "certificate_hash": "d3e968313b5875f52f821840d7cb602aed278a27"
+          }
+        },
+        {
+          "client_id": "524871725925-1gslsi3kt85v7ae7si2spo5mnu28rr36.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB0PVksSO0Q4valbMQ14YHothDP8yPa2z4"
@@ -20,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "524871725925-1gslsi3kt85v7ae7si2spo5mnu28rr36.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -1,9 +1,11 @@
 import 'package:bl_crm_poc_app/routes/app_routes.dart';
+import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppPreferences.init();
   await Firebase.initializeApp(
     name: "bl-crm-poc",
     options: FirebaseOptions(
@@ -30,7 +32,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      
     );
   }
 }
