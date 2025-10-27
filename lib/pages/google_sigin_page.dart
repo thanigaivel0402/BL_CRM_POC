@@ -1,6 +1,8 @@
+import 'package:bl_crm_poc_app/models/user.dart';
 import 'package:bl_crm_poc_app/pages/google_signin_button.dart';
 import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -18,7 +20,6 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
-  
 
   Future<void> signInWithGoogle() async {
     setState(() {
@@ -42,6 +43,18 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
       final userCredential = await FirebaseAuth.instance.signInWithCredential(
         credential,
       );
+      print("-----------------------------------------------------");
+
+      print(userCredential.user?.email);
+      print(userCredential.user?.displayName);
+
+      final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+      await _firestore.collection("users").doc(userCredential.user!.uid).set({
+        "name": userCredential.user?.displayName,
+        "uid": userCredential.user!.uid,
+        "email": userCredential.user?.email,
+      });
 
       // record logged-in state
       await AppPreferences.setLoggedIn(true);
@@ -113,13 +126,13 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: const Color(0xFF0072BC),
-                        width: 1,
+                        width: 2,
                       ),
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(50),
-                      child: Image.asset(Assets.blLogo, fit: BoxFit.cover),
+                      child: Image.asset(Assets.blLogo, fit: BoxFit.contain),
                     ),
                   ),
 
