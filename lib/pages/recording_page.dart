@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'package:bl_crm_poc_app/data/services/firebase_service.dart';
+import 'package:bl_crm_poc_app/models/note.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
+import 'package:bl_crm_poc_app/utils/validations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
@@ -17,7 +20,8 @@ class _RecordingPageState extends State<RecordingPage> {
   final audioRecorder = AudioRecorder();
   bool isRecording = false;
   String filePath = '';
-  String transcribedText = '';
+
+  late GlobalKey<FormState> _formKey;
 
   late TextEditingController titleController;
   late TextEditingController subTitleController;
@@ -27,6 +31,7 @@ class _RecordingPageState extends State<RecordingPage> {
     super.initState();
     titleController = TextEditingController();
     subTitleController = TextEditingController();
+    _formKey = GlobalKey<FormState>();
   }
 
   @override
@@ -41,80 +46,81 @@ class _RecordingPageState extends State<RecordingPage> {
         ),
         width: double.infinity,
         padding: EdgeInsets.all(screenHeight / 80),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              textAlign: TextAlign.center,
-              controller: titleController,
-              style: TextStyle(
-                fontSize: screenHeight / 40,
-                color: Colors.black,
-              ),
-              decoration: InputDecoration(
-                hintText: "Title",
-                hintStyle: TextStyle(
-                  fontSize: screenHeight / 40,
-                  color: Colors.black26,
-                ),
-                border: InputBorder.none,
-              ),
-            ),
-            TextField(
-              controller: subTitleController,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: screenHeight / 60,
-                color: Colors.black,
-              ),
-              decoration: InputDecoration(
-                hintStyle: TextStyle(
-                  fontSize: screenHeight / 60,
-                  color: Colors.black26,
-                ),
-                hintText: "SubTitle",
-                border: InputBorder.none,
-              ),
-            ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                validator: Validations.validateTitle,
+                textAlign: TextAlign.center,
 
-            Container(
-              height: screenHeight / 7,
-              width: screenHeight / 7,
-              decoration: BoxDecoration(shape: BoxShape.circle),
-              child: Lottie.asset(
-                Assets.microphoneRecord,
-                fit: BoxFit.contain,
-                animate: isRecording,
+                controller: titleController,
+                style: TextStyle(
+                  fontSize: screenHeight / 40,
+                  color: Colors.black,
+                ),
+                decoration: InputDecoration(
+                  hintText: "Title",
+                  hintStyle: TextStyle(
+                    fontSize: screenHeight / 40,
+                    color: Colors.black26,
+                  ),
+                  border: InputBorder.none,
+                ),
               ),
-            ),
-            SizedBox(height: screenHeight / 80),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    context.pop();
-                  },
-                  child: Text("Cancel"),
+              TextFormField(
+                validator: Validations.validateSubTitle,
+                controller: subTitleController,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: screenHeight / 60,
+                  color: Colors.black,
                 ),
-                ElevatedButton(
-                  onPressed: isRecording ? stopRecording : startRecording,
-                  child: Text(isRecording ? 'Pause' : 'Start'),
+                decoration: InputDecoration(
+                  hintStyle: TextStyle(
+                    fontSize: screenHeight / 60,
+                    color: Colors.black26,
+                  ),
+                  hintText: "SubTitle",
+                  border: InputBorder.none,
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    // Note newNote = Note(
-                    //   id: "",
-                    //   eventDate: DateTime.now(),
-                    //   transcript: transcribedText,
-                    //   audioUrl: filePath,
-                    // );
-                  },
-                  child: Text("Save"),
+              ),
+
+              Container(
+                height: screenHeight / 7,
+                width: screenHeight / 7,
+                decoration: BoxDecoration(shape: BoxShape.circle),
+                child: Lottie.asset(
+                  Assets.microphoneRecord,
+                  fit: BoxFit.contain,
+                  animate: isRecording,
                 ),
-              ],
-            ),
-          ],
+              ),
+              SizedBox(height: screenHeight / 80),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      context.pop();
+                    },
+                    child: Text("Cancel"),
+                  ),
+                  ElevatedButton(
+                    onPressed: isRecording ? stopRecording : startRecording,
+                    child: Text(isRecording ? 'Pause' : 'Start'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await save();
+                    },
+                    child: Text("Save"),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -132,10 +138,33 @@ class _RecordingPageState extends State<RecordingPage> {
 
   Future<void> stopRecording() async {
     filePath = await audioRecorder.stop() ?? '';
+    print("=====filePath : $filePath==============================");
     setState(() {
       isRecording = false;
     });
   }
 
-  save() async {}
+  save() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      if (filePath.isNotEmpty) {
+        print("==============save================================");
+        Note note = Note(
+          id: "",
+          eventDate: DateTime.now(),
+          transcript: "",
+          meetingType: titleController.text,
+          meetingWith: subTitleController.text,
+        );
+        try {
+          await FirebaseService.addNote(note, filePath);
+        } catch (e) {
+          print('========${e.toString()}================');
+        }
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Record Audio")));
+      }
+    }
+  }
 }

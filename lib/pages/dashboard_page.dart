@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:bl_crm_poc_app/models/note.dart';
 import 'package:bl_crm_poc_app/pages/add_note_screen.dart';
+import 'package:bl_crm_poc_app/pages/recording_page.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -147,8 +151,8 @@ class _DashboardPageState extends State<DashboardPage> {
               itemCount: notes.length,
               itemBuilder: (context, index) {
                 final note = notes[index];
-                return GestureDetector(
-                  onTap: () {
+          return GestureDetector(
+            onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -159,7 +163,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ),
                     );
-                  },
+            },
                   child: Card(
                     elevation: 3,
                     shape: RoundedRectangleBorder(
@@ -200,7 +204,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                         ],
-                      ),
+              ),
                     ),
                   ),
                 );
@@ -211,11 +215,8 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddNoteScreen()),
-          );
+        onPressed: () async {
+          await showRecording();
         },
         child: const Icon(Icons.add),
       ),
@@ -226,5 +227,37 @@ class _DashboardPageState extends State<DashboardPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  showRecording() async {
+    bool hasPermission = await requestMicPermission();
+    if (!hasPermission) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Microphone permission denied')));
+    } else {
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return RecordingPage();
+        },
+      );
+    }
+  }
+
+  Future<bool> requestMicPermission() async {
+    var status = await Permission.microphone.status;
+
+    if (status.isGranted) {
+      return true;
+    } else {
+      var result = await Permission.microphone.request();
+
+      if (result.isGranted) {
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 }
