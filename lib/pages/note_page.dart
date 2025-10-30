@@ -1,9 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:bl_crm_poc_app/models/note.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class NotePage extends StatefulWidget {
-  const NotePage({super.key});
+  Note note;
+
+  NotePage({super.key, required this.note});
 
   @override
   State<NotePage> createState() => _NotePageState();
@@ -13,11 +16,13 @@ class _NotePageState extends State<NotePage> {
   late TextEditingController titleController;
   late TextEditingController descController;
 
+  bool isEditable = false;
+
   @override
   void initState() {
+    titleController = TextEditingController(text: widget.note.meetingType);
+    descController = TextEditingController(text: widget.note.transcript);
     super.initState();
-    titleController = TextEditingController();
-    descController = TextEditingController();
   }
 
   @override
@@ -45,29 +50,47 @@ class _NotePageState extends State<NotePage> {
           ),
         ),
         actions: [
-          InkWell(
-            onTap: () {},
-            child: CustomIconButton(
-              icon: Icons.edit,
-              iconSize: screenHeight / 40,
-            ),
-          ),
+          isEditable
+              ? TextButton(
+                  style: ButtonStyle(),
+                  onPressed: () {
+                    setState(() {
+                      isEditable = false;
+                    });
+                  },
+                  child: Text("Cancel", style: TextStyle(color: Colors.blue)),
+                )
+              : InkWell(
+                  onTap: () {
+                    setState(() {
+                      isEditable = true;
+                    });
+                  },
+                  child: CustomIconButton(
+                    icon: Icons.edit,
+                    iconSize: screenHeight / 40,
+                  ),
+                ),
           SizedBox(width: 10),
-          InkWell(
-            onTap: () {},
-            child: CustomIconButton(
-              icon: Icons.delete_outline,
-              iconSize: screenHeight / 40,
-            ),
-          ),
+          isEditable
+              ? SizedBox()
+              : InkWell(
+                  onTap: () {},
+                  child: CustomIconButton(
+                    icon: Icons.delete_outline,
+                    iconSize: screenHeight / 40,
+                  ),
+                ),
           SizedBox(width: 10),
-          InkWell(
-            onTap: () {},
-            child: CustomIconButton(
-              icon: Icons.share,
-              iconSize: screenHeight / 40,
-            ),
-          ),
+          isEditable
+              ? SizedBox()
+              : InkWell(
+                  onTap: () {},
+                  child: CustomIconButton(
+                    icon: Icons.share,
+                    iconSize: screenHeight / 40,
+                  ),
+                ),
         ],
       ),
       body: Padding(
@@ -75,6 +98,7 @@ class _NotePageState extends State<NotePage> {
         child: Column(
           children: [
             TextFormField(
+              enabled: isEditable,
               controller: titleController,
               cursorColor: Colors.black,
               style: TextStyle(
@@ -92,6 +116,7 @@ class _NotePageState extends State<NotePage> {
             ),
 
             TextFormField(
+              enabled: isEditable,
               controller: descController,
               maxLines: 10,
               cursorColor: Colors.black,
@@ -109,26 +134,31 @@ class _NotePageState extends State<NotePage> {
               ),
             ),
 
-            Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenHeight / 20,
-                  vertical: screenHeight / 70,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "Save",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: screenHeight / 40,
-                  ),
-                ),
-              ),
-            ),
+            isEditable
+                ? GestureDetector(
+                    onTap: () {},
+                    child: Center(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenHeight / 20,
+                          vertical: screenHeight / 70,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Save",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: screenHeight / 40,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : SizedBox(),
           ],
         ),
       ),
