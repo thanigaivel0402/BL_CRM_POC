@@ -39,7 +39,7 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
       await notesRef.add({
         'title': title,
         'content': content,
-        'timestamp': FieldValue.serverTimestamp(),
+        'time': FieldValue.serverTimestamp(),
       });
     } else {
       await notesRef.doc(widget.noteId).update({
