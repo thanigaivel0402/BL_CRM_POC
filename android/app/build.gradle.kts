@@ -7,11 +7,12 @@ plugins {
 }
 
 dependencies {
-  implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }
 
 android {
-    namespace = "com.example.bl_crm_poc_app"
+    namespace = "com.example.bl_crm_app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -25,7 +26,7 @@ android {
     }
 
     defaultConfig {
-    applicationId = "com.example.bl_crm_poc_app"
+    applicationId = "com.example.bl_crm_app"
     // ...
     // cloud_firestore currently requires minSdk >= 23
     minSdk = 23

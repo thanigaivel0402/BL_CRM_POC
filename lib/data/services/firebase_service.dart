@@ -13,16 +13,20 @@ class FirebaseService {
     final FirebaseAuth _auth = FirebaseAuth.instance;
     var uid = _auth.currentUser!.uid;
 
-    String audioUrl = await uploadImageToStorage("audioUrl", audioFile);
-
     DocumentReference documentReference = _fireStore
         .collection("users")
         .doc(uid)
         .collection("notes")
         .doc();
     note.id = documentReference.id;
+    String audioUrl = await uploadAudioToStorage(
+      "audioUrls",
+      audioFile,
+      note.id,
+    );
+
     note.audioUrl = audioUrl;
-    documentReference.set(note.toJson());
+    await documentReference.set(note.toMap());
     return "success";
   }
 
@@ -41,9 +45,10 @@ class FirebaseService {
     return "Success";
   }
 
-  static Future<String> uploadImageToStorage(
+  static Future<String> uploadAudioToStorage(
     String childName,
     String filePath,
+    String noteId,
   ) async {
     final FirebaseStorage _storage = FirebaseStorage.instance;
     final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -55,6 +60,7 @@ class FirebaseService {
         .ref()
         .child(childName)
         .child(_auth.currentUser!.uid)
+        .child(noteId)
         .child(fileName);
     UploadTask uploadTask = ref.putFile(file);
     TaskSnapshot snap = await uploadTask;
