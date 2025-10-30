@@ -1,8 +1,10 @@
+// lib/pages/splash_page.dart
 import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -20,12 +22,10 @@ class _SplashPageState extends State<SplashPage>
   @override
   void initState() {
     super.initState();
-    // 🎞️ Setup animations
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
@@ -34,25 +34,36 @@ class _SplashPageState extends State<SplashPage>
       begin: 0.8,
       end: 1.1,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
-
     _controller.forward();
 
-    // 🕐 Navigate to dashboard after animation
-    _controller.addStatusListener((status) {
+    _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            SharedPreferences.getInstance().then((prefs) {
-              final isLoggedIn =
-                  prefs.getBool(AppPreferences.isLoggedInKey) ?? false;
-              if (isLoggedIn) {
-                context.go('/dashboard'); 
-              } else {
-                context.go('/login'); 
-              }
-            });
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
+        await AppPreferences.init();
+
+        // ✅ Handle web redirect result (if signInWithRedirect was used)
+        if (kIsWeb) {
+          try {
+            final result = await FirebaseAuth.instance.getRedirectResult();
+            if (result.user != null) {
+              await AppPreferences.setLoggedIn(true);
+            }
+          } catch (e) {
+            debugPrint('getRedirectResult error: $e');
           }
-        });
+        }
+
+        // ✅ Check login status (shared prefs or current user)
+        final bool isLoggedIn =
+            AppPreferences.isLoggedIn() ||
+            FirebaseAuth.instance.currentUser != null;
+
+        if (isLoggedIn) {
+          context.go('/dashboard');
+        } else {
+          context.go('/login');
+        }
       }
     });
   }
