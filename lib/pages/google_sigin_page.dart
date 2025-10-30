@@ -1,11 +1,12 @@
+// lib/pages/google_signin_page.dart
 import 'package:bl_crm_poc_app/pages/google_signin_button.dart';
 import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class GoogleSignInPage extends StatefulWidget {
   const GoogleSignInPage({super.key});
@@ -18,8 +19,8 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
-  
 
+  /// ✅ Cross-platform Google Sign-In (Android / iOS / Web)
   Future<void> signInWithGoogle() async {
     setState(() {
       _loading = true;
@@ -27,50 +28,54 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
     });
 
     try {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        // user cancelled the sign-in
-        return;
+      UserCredential? userCredential;
+
+      if (kIsWeb) {
+        // 🌐 Web: Use Firebase Auth popup or redirect flow
+        try {
+          final provider = GoogleAuthProvider();
+          userCredential = await FirebaseAuth.instance.signInWithPopup(
+            provider,
+          );
+        } catch (e) {
+          debugPrint('Popup failed, trying redirect: $e');
+          final provider = GoogleAuthProvider();
+          await FirebaseAuth.instance.signInWithRedirect(provider);
+          return; // the redirect flow will complete on reload
+        }
+      } else {
+        // 📱 Mobile: Use google_sign_in package tokens
+        final googleUser = await GoogleSignIn().signIn();
+        if (googleUser == null) return; // user cancelled
+
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        userCredential = await FirebaseAuth.instance.signInWithCredential(
+          credential,
+        );
       }
 
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
-
-      // record logged-in state
-      await AppPreferences.setLoggedIn(true);
-
-      // optionally save some profile fields as well:
-      // final prefs = await AppPreferences.getInstance(); // not needed now
-      // prefs.setString('user_name', userCredential.user?.displayName ?? '');
-      // prefs.setString('user_photo', userCredential.user?.photoURL ?? '');
-
-      if (!mounted) return;
-      context.go('/dashboard');
+      if (userCredential != null) {
+        await AppPreferences.setLoggedIn(true);
+        if (!mounted) return;
+        context.go('/dashboard');
+      }
     } catch (e, st) {
-      // log if you need
       debugPrint('Google sign-in failed: $e\n$st');
       if (!mounted) return;
-      setState(() {
-        _error = 'Sign in failed. Please try again.';
-      });
+      setState(() => _error = 'Sign in failed. Please try again.');
     } finally {
       if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      setState(() => _loading = false);
     }
   }
 
   Future<void> signOut() async {
     try {
-      await GoogleSignIn().signOut();
+      if (!kIsWeb) await GoogleSignIn().signOut();
       await FirebaseAuth.instance.signOut();
       await AppPreferences.setLoggedIn(false);
     } catch (e) {
@@ -111,10 +116,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     height: 90,
                     width: 90,
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFF0072BC),
-                        width: 1,
-                      ),
+                      border: Border.all(color: const Color(0xFF0072BC)),
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: ClipRRect(
@@ -125,23 +127,18 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
 
                   const SizedBox(height: 24),
 
-                  // Welcome Text
                   const Text(
                     'Welcome to VoiceCRM',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-
                   const SizedBox(height: 8),
-
                   const Text(
                     'Capture, transcribe, and manage your voice notes.',
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 24),
 
-                  // If user is already signed in show profile + sign out button
                   if (user != null) ...[
                     CircleAvatar(
                       radius: 30,
@@ -166,7 +163,6 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     const SizedBox(height: 12),
                     Text(_error!, style: const TextStyle(color: Colors.red)),
                   ],
-
                   const SizedBox(height: 8),
                 ],
               ),

@@ -1,10 +1,7 @@
-import 'package:bl_crm_poc_app/models/note.dart';
-import 'package:bl_crm_poc_app/pages/add_note_screen.dart';
-import 'package:bl_crm_poc_app/pages/recording_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:go_router/go_router.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
+import 'package:bl_crm_poc_app/pages/add_note_screen.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -33,7 +30,6 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final notesRef = FirebaseFirestore.instance.collection('notes');
 
     return Scaffold(
@@ -61,8 +57,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     isDense: true,
                   ),
                   onChanged: (query) {
-                    debugPrint('Search query: $query');
-                    // TODO: Filter notes here
+                    setState(() {
+                      _searchQuery = query.trim().toLowerCase();
+                    });
                   },
                 ),
               ),
@@ -73,58 +70,48 @@ class _DashboardPageState extends State<DashboardPage> {
               onPressed: _startSearch,
             )
           else
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: TextButton(
-                onPressed: _cancelSearch,
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+            TextButton(
+              onPressed: _cancelSearch,
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
           if (!_isSearching)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white),
               onSelected: (value) {
-                if (value == 'settings') {
-                  debugPrint('Settings selected');
-                } else if (value == 'sort by created') {
-                  debugPrint('Sort by time created');
-                } else if (value == 'sort by edited') {
-                  debugPrint('Sort by time edited');
-                } else if (value == 'logout') {
-                  debugPrint('Logout selected');
+                if (value == 'logout') {
+                  // TODO: Implement logout logic
                 }
               },
               itemBuilder: (context) => const [
-                PopupMenuItem(value: 'settings', child: Text('Settings')),
-                PopupMenuItem(
-                  value: 'sort by created',
-                  child: Text('Sort by time created'),
-                ),
-                PopupMenuItem(
-                  value: 'sort by edited',
-                  child: Text('Sort by time edited'),
-                ),
                 PopupMenuItem(value: 'logout', child: Text('Logout')),
               ],
             ),
         ],
       ),
+
+      // ✅ Real-time Firestore Stream
       body: StreamBuilder<QuerySnapshot>(
-        stream: notesRef.orderBy('timestamp', descending: true).snapshots(),
+        stream: notesRef.snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Error loading notes'));
+            return const Center(
+              child: Text('❌ Error loading notes. Check Firebase connection.'),
+            );
           }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          var notes = snapshot.data!.docs;
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('📝 No notes yet.'));
+          }
 
-          // Apply search filter if any
+          // 🔎 Apply search filter
+          var notes = snapshot.data!.docs;
           if (_searchQuery.isNotEmpty) {
             notes = notes.where((note) {
               final title = (note['title'] ?? '').toString().toLowerCase();
@@ -134,25 +121,31 @@ class _DashboardPageState extends State<DashboardPage> {
             }).toList();
           }
 
-          if (notes.isEmpty) {
-            return const Center(child: Text('No notes yet.'));
-          }
-
-          // 🧱 Display in Grid View
+          // 📱 Show Grid View
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // Two cards per row
+                crossAxisCount: 2, // two per row
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 1, // Square-ish cards
+                childAspectRatio: 1,
               ),
               itemCount: notes.length,
               itemBuilder: (context, index) {
                 final note = notes[index];
-          return GestureDetector(
-            onTap: () {
+                // 🕓 Format timestamp
+                final timestamp = note['time'];
+                String formattedDate = '';
+                if (timestamp != null && timestamp is Timestamp) {
+                  formattedDate = DateFormat(
+                    'dd MMM yyyy, hh:mm a',
+                  ).format(timestamp.toDate());
+                } else {
+                  formattedDate = 'Unknown date';
+                }
+                return GestureDetector(
+                  onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -198,9 +191,13 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                           Align(
                             alignment: Alignment.bottomRight,
-                            child: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => notesRef.doc(note.id).delete(),
+                            child: Text(
+                              formattedDate,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ),
                         ],

@@ -28,7 +28,7 @@ android {
     applicationId = "com.example.bl_crm_poc_app"
     // ...
     // cloud_firestore currently requires minSdk >= 23
-    minSdk = 23
+    minSdk = flutter.minSdkVersion
     targetSdk = flutter.targetSdkVersion
     versionCode = flutter.versionCode
     versionName = flutter.versionName
