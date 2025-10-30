@@ -156,7 +156,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ),
                     );
-                  },
+            },
                   child: Card(
                     elevation: 3,
                     shape: RoundedRectangleBorder(
@@ -201,7 +201,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                         ],
-                      ),
+              ),
                     ),
                   ),
                 );
@@ -212,11 +212,8 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddNoteScreen()),
-          );
+        onPressed: () async {
+          await showRecording();
         },
         child: const Icon(Icons.add),
       ),
@@ -227,5 +224,37 @@ class _DashboardPageState extends State<DashboardPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  showRecording() async {
+    bool hasPermission = await requestMicPermission();
+    if (!hasPermission) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Microphone permission denied')));
+    } else {
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return RecordingPage();
+        },
+      );
+    }
+  }
+
+  Future<bool> requestMicPermission() async {
+    var status = await Permission.microphone.status;
+
+    if (status.isGranted) {
+      return true;
+    } else {
+      var result = await Permission.microphone.request();
+
+      if (result.isGranted) {
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 }
