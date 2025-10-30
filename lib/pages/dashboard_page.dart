@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:bl_crm_poc_app/pages/add_note_screen.dart';
+import 'package:bl_crm_poc_app/pages/recording_page.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -156,7 +158,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ),
                     );
-            },
+                  },
                   child: Card(
                     elevation: 3,
                     shape: RoundedRectangleBorder(
@@ -201,7 +203,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                         ],
-              ),
+                      ),
                     ),
                   ),
                 );
