@@ -1,3 +1,4 @@
+import 'package:bl_crm_poc_app/models/note.dart';
 import 'package:bl_crm_poc_app/pages/dashboard_page.dart';
 import 'package:bl_crm_poc_app/pages/google_sigin_page.dart';
 import 'package:bl_crm_poc_app/pages/note_page.dart';
@@ -12,9 +13,11 @@ class AppRoutes {
       GoRoute(
         path: '/note-page',
         name: "note-page",
-        builder: (context, state) => NotePage(),
+        builder: (context, state) {
+          var note = state.extra as Note;
+          return NotePage(note: note);
+        },
       ),
-      GoRoute(path: '/', builder: (context, state) => SplashPage()),
       GoRoute(path: '/dashboard', builder: (context, state) => DashboardPage()),
       GoRoute(
         path: '/login',
