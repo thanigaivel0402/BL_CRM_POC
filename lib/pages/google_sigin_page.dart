@@ -4,6 +4,7 @@ import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -19,6 +20,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
+  
 
   /// ✅ Cross-platform Google Sign-In (Android / iOS / Web)
   Future<void> signInWithGoogle() async {
