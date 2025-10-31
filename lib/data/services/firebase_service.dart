@@ -39,10 +39,23 @@ class FirebaseService {
         .collection("notes")
         .doc(note.id);
     reference.update({
-      'audioUrl': note.audioUrl,
+      'meetingWith': note.meetingWith,
+      'meetingType': note.meetingType,
       'transcript': note.transcript,
     });
     return "Success";
+  }
+
+  static String delete(Note note) {
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+    var uid = _auth.currentUser?.uid;
+    DocumentReference reference = _fireStore
+        .collection("users")
+        .doc(uid)
+        .collection("notes")
+        .doc(note.id);
+    reference.delete();
+      return "success";
   }
 
   static Future<String> uploadAudioToStorage(
