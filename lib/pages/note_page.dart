@@ -1,8 +1,10 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:bl_crm_poc_app/data/services/firebase_service.dart';
 import 'package:bl_crm_poc_app/models/note.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+// ignore: must_be_immutable
 class NotePage extends StatefulWidget {
   Note note;
 
@@ -75,7 +77,19 @@ class _NotePageState extends State<NotePage> {
           isEditable
               ? SizedBox()
               : InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    try {
+                      FirebaseService.delete(widget.note);
+                      context.pop();
+                    } catch (e) {
+                      debugPrint(e.toString());
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Something Went Wrong ! Try Again"),
+                        ),
+                      );
+                    }
+                  },
                   child: CustomIconButton(
                     icon: Icons.delete_outline,
                     iconSize: screenHeight / 40,
@@ -136,7 +150,20 @@ class _NotePageState extends State<NotePage> {
 
             isEditable
                 ? GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      try {
+                        widget.note.transcript = descController.text;
+                        FirebaseService.editNote(widget.note);
+                        context.pop();
+                      } catch (e) {
+                        debugPrint(e.toString());
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Something Went Wrong ! Try Again"),
+                          ),
+                        );
+                      }
+                    },
                     child: Center(
                       child: Container(
                         padding: EdgeInsets.symmetric(

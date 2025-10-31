@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
+import 'package:bl_crm_poc_app/models/note.dart';
 import 'package:bl_crm_poc_app/pages/add_note_screen.dart';
 import 'package:bl_crm_poc_app/pages/recording_page.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class DashboardPage extends StatefulWidget {

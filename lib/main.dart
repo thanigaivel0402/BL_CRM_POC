@@ -13,12 +13,13 @@ Future<void> main() async {
     if (kIsWeb) {
       await Firebase.initializeApp(
         options: const FirebaseOptions(
-          apiKey: "AIzaSyCNb9hsj3s9Oo9koVqLfxgXZlLpPVn-AQU",
-          authDomain: "bl-crm-poc.firebaseapp.com",
-          projectId: "bl-crm-poc",
-          storageBucket: "bl-crm-poc.appspot.com",
-          messagingSenderId: "524871725925",
-          appId: "1:524871725925:web:9ec76755c23585979de78c",
+          apiKey: "AIzaSyAc8AjDvA0x_-6Yija4KO1FRMDvjefDpRA",
+          authDomain: "bl-crm-poc-2ea81.firebaseapp.com",
+          projectId: "bl-crm-poc-2ea81",
+          storageBucket: "bl-crm-poc-2ea81.firebasestorage.app",
+          messagingSenderId: "231168504761",
+          appId: "1:231168504761:web:a4be38ef30e142fd763c68",
+          measurementId: "G-LYKQSZ5728",
         ),
       );
     } else {
