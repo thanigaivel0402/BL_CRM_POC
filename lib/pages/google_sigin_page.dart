@@ -4,10 +4,10 @@ import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:bl_crm_poc_app/utils/assets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GoogleSignInPage extends StatefulWidget {
   const GoogleSignInPage({super.key});
@@ -20,10 +20,28 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
-  
 
-  /// ✅ Cross-platform Google Sign-In (Android / iOS / Web)
+  @override
+  void initState() {
+    super.initState();
+    user = FirebaseAuth.instance.currentUser;
+
+    // If already signed in, redirect to dashboard immediately (post frame)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final current = FirebaseAuth.instance.currentUser;
+      if (current != null) {
+        // ensure we don't try to navigate if widget is disposed
+        if (mounted) {
+          context.go('/dashboard');
+        }
+      }
+    });
+  }
+
+  /// Cross-platform Google Sign-In (Android / iOS / Web)
   Future<void> signInWithGoogle() async {
+    if (_loading) return;
+
     setState(() {
       _loading = true;
       _error = null;
@@ -32,66 +50,151 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
     try {
       UserCredential? userCredential;
 
+      // web flow
       if (kIsWeb) {
-        // 🌐 Web: Use Firebase Auth popup or redirect flow
+        final provider = GoogleAuthProvider();
         try {
-          final provider = GoogleAuthProvider();
-          userCredential = await FirebaseAuth.instance.signInWithPopup(
-            provider,
-          );
+          userCredential =
+              await FirebaseAuth.instance.signInWithPopup(provider);
         } catch (e) {
+          // fallback to redirect (popup blocked or not available)
           debugPrint('Popup failed, trying redirect: $e');
-          final provider = GoogleAuthProvider();
-          await FirebaseAuth.instance.signInWithRedirect(provider);
-          return; // the redirect flow will complete on reload
+          try {
+            await FirebaseAuth.instance.signInWithRedirect(provider);
+            // When using redirect, the app will leave and return later.
+            // Do not set _loading=false here because redirect navigates away.
+            return;
+          } catch (e2) {
+            debugPrint('Redirect also failed: $e2');
+            throw Exception('Google sign-in popup/redirect failed: $e2');
+          }
         }
       } else {
-        // 📱 Mobile: Use google_sign_in package tokens
+        // mobile flow
         final googleUser = await GoogleSignIn().signIn();
-        if (googleUser == null) return; // user cancelled
-
+        if (googleUser == null) {
+          // user cancelled
+          if (!mounted) return;
+          setState(() {
+            _loading = false;
+          });
+          return;
+        }
         final googleAuth = await googleUser.authentication;
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        userCredential = await FirebaseAuth.instance.signInWithCredential(
-          credential,
-        );
+        userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
       }
 
+      // If we have a signed-in firebase user, perform allowlist check
       if (userCredential != null) {
-        await AppPreferences.setLoggedIn(true);
+        final firebaseUser = userCredential.user;
+        if (firebaseUser == null) {
+          throw Exception('No Firebase user after sign-in.');
+        }
+
+        final firestore = FirebaseFirestore.instance;
+
+        // 1) Check allowed_users by UID
+        final uidDoc =
+            await firestore.collection('allowed_users').doc(firebaseUser.uid).get();
+        bool allowed = uidDoc.exists;
+
+        // 2) fallback: allowed_emails document keyed by email
+        if (!allowed) {
+          final email = firebaseUser.email;
+          if (email != null && email.isNotEmpty) {
+            final emailDoc =
+                await firestore.collection('allowed_emails').doc(email).get();
+            allowed = emailDoc.exists;
+          }
+        }
+
+        if (!allowed) {
+          // not authorized -> sign out & show message
+          await signOut();
+
+          if (!mounted) return;
+          setState(() {
+            _error =
+                'Access denied. This app is for internal users only. Please contact admin.';
+            _loading = false;
+          });
+          return;
+        }
+
+        // allowed -> optionally create/update user doc (merge)
+        try {
+          await firestore.collection('users').doc(firebaseUser.uid).set({
+            'displayName': firebaseUser.displayName,
+            'email': firebaseUser.email,
+            'photoURL': firebaseUser.photoURL,
+            'lastSeen': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Failed to write user doc: $e');
+        }
+
+        // mark local prefs and navigate
+        try {
+          await AppPreferences.setLoggedIn(true);
+        } catch (e) {
+          debugPrint('Failed to set logged in pref: $e');
+        }
+
         if (!mounted) return;
+        setState(() {
+          user = firebaseUser;
+          _loading = false;
+        });
+
         context.go('/dashboard');
+        return;
       }
+
+      // if we reach here and no userCredential (unexpected), show error
+      if (!mounted) return;
+      setState(() {
+        _error = 'Sign in failed. Please try again.';
+      });
     } catch (e, st) {
       debugPrint('Google sign-in failed: $e\n$st');
       if (!mounted) return;
-      setState(() => _error = 'Sign in failed. Please try again.');
+      setState(() {
+        _error = 'Sign in failed. Please try again.';
+      });
     } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      // If a redirect was triggered we returned earlier; otherwise ensure loading is false
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
   Future<void> signOut() async {
     try {
-      if (!kIsWeb) await GoogleSignIn().signOut();
+      if (!kIsWeb) {
+        try {
+          await GoogleSignIn().signOut();
+        } catch (e) {
+          debugPrint('GoogleSignIn().signOut error: $e');
+        }
+      }
       await FirebaseAuth.instance.signOut();
       await AppPreferences.setLoggedIn(false);
     } catch (e) {
       debugPrint('Sign out error: $e');
     } finally {
       if (!mounted) return;
-      setState(() => user = null);
+      setState(() {
+        user = null;
+      });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    user = FirebaseAuth.instance.currentUser;
   }
 
   @override
@@ -102,8 +205,10 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
         body: Center(
           child: SingleChildScrollView(
             child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              margin:
+                  const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
@@ -123,7 +228,10 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(50),
-                      child: Image.asset(Assets.blLogo, fit: BoxFit.cover),
+                      child: Image.asset(
+                        Assets.blLogo,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
 
@@ -132,7 +240,8 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                   const Text(
                     'Welcome to VoiceCRM',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -144,8 +253,22 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                   if (user != null) ...[
                     CircleAvatar(
                       radius: 30,
-                      backgroundImage: NetworkImage(user!.photoURL ?? ''),
+                      backgroundImage: (user!.photoURL != null &&
+                              user!.photoURL!.isNotEmpty)
+                          ? NetworkImage(user!.photoURL!)
+                          : null,
                       backgroundColor: Colors.grey[200],
+                      child: (user!.photoURL == null ||
+                              user!.photoURL!.isEmpty)
+                          ? Text(
+                              (user!.displayName != null &&
+                                      user!.displayName!.isNotEmpty)
+                                  ? user!.displayName!.substring(0, 1).toUpperCase()
+                                  : 'U',
+                              style: const TextStyle(
+                                  color: Colors.black, fontSize: 20),
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 8),
                     Text(user!.displayName ?? user!.email ?? ''),

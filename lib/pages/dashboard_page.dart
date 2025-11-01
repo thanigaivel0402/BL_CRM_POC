@@ -1,11 +1,13 @@
+import 'package:bl_crm_poc_app/data/services/firebase_service.dart';
 import 'package:bl_crm_poc_app/models/note.dart';
-import 'package:bl_crm_poc_app/pages/add_note_screen.dart';
+import 'package:bl_crm_poc_app/pages/note_page.dart';
 import 'package:bl_crm_poc_app/pages/recording_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <-- added for user info & sign out
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -19,6 +21,7 @@ class _DashboardPageState extends State<DashboardPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+
   void _startSearch() {
     setState(() => _isSearching = true);
   }
@@ -31,14 +34,118 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  // Sign out logic
+  Future<void> _signOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      // Navigate to login route (update route name if different)
+      context.go('/login');
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error signing out: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final notesRef = FirebaseFirestore.instance.collection('notes');
+    final notesRef = FirebaseFirestore.instance.collection('users').doc(
+        FirebaseAuth.instance.currentUser!.uid).collection('notes');
+
+    // get current user info (may be null)
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? 'Guest User';
+    final email = user?.email ?? 'No email';
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL;
 
     return Scaffold(
+      // Add a Drawer that acts as the "menu bar" with profile + sign out
+      drawer: Drawer(
+        
+        backgroundColor: Color(0xFFF3F5FF),
+        child: Column(
+          children: [
+        UserAccountsDrawerHeader(
+          decoration: BoxDecoration(
+            color: Color(0xFF1768B3), 
+          ),
+          accountName: Text(displayName), 
+          accountEmail: Text(email),
+          currentAccountPicture: CircleAvatar(
+            backgroundColor: theme.colorScheme.onPrimary,
+            child: ClipOval(
+          child: photoUrl != null
+              ? Image.network(
+              photoUrl,
+              width: 48,
+              height: 48,
+              fit: BoxFit.cover,
+              // show initials if load fails (429, network, etc)
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+              child: Text(
+                (displayName.isNotEmpty ? displayName[0] : 'G')
+                .toUpperCase(),
+                style: TextStyle(
+                  fontSize: 24,
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+                );
+              },
+            )
+              : Center(
+              child: Text(
+                (displayName.isNotEmpty ? displayName[0] : 'G')
+                .toUpperCase(),
+                style: TextStyle(
+              fontSize: 24,
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.person),
+          title: const Text('Profile'),
+          subtitle: Text(displayName),
+          onTap: () {
+            // Optional: navigate to profile page or just close drawer
+            Navigator.of(context).pop();
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.email),
+          title: const Text('Email'),
+          subtitle: Text(email),
+          onTap: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        const Spacer(),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 24.0),
+          child: ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Sign out'),
+            onTap: () async {
+          Navigator.of(context).pop(); // close drawer first
+          await _signOut();
+            },
+          ),
+        ),
+          ],
+        ),
+      ),
+
       appBar: AppBar(
-        backgroundColor: theme.colorScheme.primary,
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Color(0xFF1768B3),
         title: !_isSearching
             ? const Text('My Notes', style: TextStyle(color: Colors.white))
             : Container(
@@ -81,24 +188,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
-          if (!_isSearching)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              onSelected: (value) {
-                if (value == 'logout') {
-                  // TODO: Implement logout logic
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'logout', child: Text('Logout')),
-              ],
-            ),
         ],
       ),
 
       // ✅ Real-time Firestore Stream
-      body: StreamBuilder<QuerySnapshot>(
-        stream: notesRef.snapshots(),
+      body: FutureBuilder<List<Note>>(
+        future: FirebaseService.fetchNotes(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Center(
@@ -110,16 +205,17 @@ class _DashboardPageState extends State<DashboardPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('📝 No notes yet.'));
           }
 
           // 🔎 Apply search filter
-          var notes = snapshot.data!.docs;
+          
+          var notes = snapshot.data!;
           if (_searchQuery.isNotEmpty) {
             notes = notes.where((note) {
-              final title = (note['title'] ?? '').toString().toLowerCase();
-              final content = (note['content'] ?? '').toString().toLowerCase();
+              final title = (note.meetingWith ?? '').toString().toLowerCase();
+              final content = (note.meetingType ?? '').toString().toLowerCase();
               return title.contains(_searchQuery) ||
                   content.contains(_searchQuery);
             }).toList();
@@ -139,41 +235,31 @@ class _DashboardPageState extends State<DashboardPage> {
               itemBuilder: (context, index) {
                 final note = notes[index];
                 // 🕓 Format timestamp
-                final timestamp = note['time'];
-                String formattedDate = '';
-                if (timestamp != null && timestamp is Timestamp) {
-                  formattedDate = DateFormat(
-                    'dd MMM yyyy, hh:mm a',
-                  ).format(timestamp.toDate());
-                } else {
-                  formattedDate = 'Unknown date';
-                }
+                final timestamp = note.eventDate;
+                
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AddNoteScreen(
-                          noteId: note.id,
-                          existingTitle: note['title'],
-                          existingContent: note['content'],
-                        ),
+                        builder: (_) => NotePage(note: note)
                       ),
                     );
                   },
                   child: Card(
+                    
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    color: Colors.amber.shade50,
+                    color:Color(0xF3F5FFFF) ,
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            note['title'] ?? 'Untitled',
+                            note.meetingWith ?? 'Untitled',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -184,7 +270,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(height: 8),
                           Expanded(
                             child: Text(
-                              note['content'] ?? '',
+                              note.meetingType?? '',
                               style: const TextStyle(
                                 color: Colors.black87,
                                 fontSize: 14,
@@ -196,7 +282,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           Align(
                             alignment: Alignment.bottomRight,
                             child: Text(
-                              formattedDate,
+                              timestamp != null
+                                  ? DateFormat.yMMMd().add_jm().format(timestamp)
+                                  : 'No Date',
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey,
@@ -216,6 +304,8 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
 
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Color(0xFF1768B3),
+        foregroundColor: Colors.white,
         onPressed: () async {
           await showRecording();
         },

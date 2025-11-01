@@ -22,43 +22,58 @@ class _SplashPageState extends State<SplashPage>
   @override
   void initState() {
     super.initState();
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
+
+    _fadeAnimation =
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
     _controller.forward();
 
     _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
+        // small pause for UX
         await Future.delayed(const Duration(seconds: 1));
         if (!mounted) return;
-        await AppPreferences.init();
 
-        // ✅ Handle web redirect result (if signInWithRedirect was used)
+        // 1) Initialize local prefs first (avoid races)
+        try {
+          await AppPreferences.init();
+        } catch (e) {
+          debugPrint('AppPreferences.init() failed: $e');
+        }
+
+        // 2) On web, resolve any pending redirect result BEFORE checking currentUser
         if (kIsWeb) {
           try {
             final result = await FirebaseAuth.instance.getRedirectResult();
             if (result.user != null) {
-              await AppPreferences.setLoggedIn(true);
+              // Optionally update local prefs when redirect sign-in succeeded
+              try {
+                await AppPreferences.setLoggedIn(true);
+              } catch (e) {
+                debugPrint('Failed to set logged in pref: $e');
+              }
             }
           } catch (e) {
             debugPrint('getRedirectResult error: $e');
           }
         }
 
-        // ✅ Check login status (shared prefs or current user)
+        // 3) Final auth check
+        final user = FirebaseAuth.instance.currentUser;
         final bool isLoggedIn =
-            AppPreferences.isLoggedIn() ||
-            FirebaseAuth.instance.currentUser != null;
+            (AppPreferences.isLoggedIn() ?? false) || user != null;
 
+        // navigate accordingly
+        if (!mounted) return;
         if (isLoggedIn) {
           context.go('/dashboard');
         } else {
@@ -77,7 +92,12 @@ class _SplashPageState extends State<SplashPage>
           opacity: _fadeAnimation,
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: Image.asset(Assets.blLogo),
+            child: Image.asset(
+              Assets.blLogo,
+              width: 140,
+              height: 140,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),

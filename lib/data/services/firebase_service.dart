@@ -9,6 +9,26 @@ import 'package:flutter/foundation.dart';
 class FirebaseService {
   static final FirebaseFirestore _fireStore = FirebaseFirestore.instance;
 
+  static Future<List<Note>> fetchNotes() async {
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+    var uid = _auth.currentUser?.uid;
+    Query<Map<String, dynamic>> ref;
+
+    
+      ref = _fireStore
+          .collection("users")
+          .doc(uid)
+          .collection("notes");
+          
+    
+
+    QuerySnapshot snapShot = await ref.get();
+    final allData = snapShot.docs
+        .map((doc) => Note.fromMap(doc.data() as Map<String, dynamic>))
+        .toList();
+    return allData;
+  }
+
   static Future<String> addNote(Note note, String audioFile) async {
     final FirebaseAuth _auth = FirebaseAuth.instance;
     var uid = _auth.currentUser!.uid;

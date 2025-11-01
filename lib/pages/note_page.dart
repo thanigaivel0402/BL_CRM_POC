@@ -110,6 +110,7 @@ class _NotePageState extends State<NotePage> {
       body: Padding(
         padding: EdgeInsets.all(screenHeight / 40),
         child: Column(
+          
           children: [
             TextFormField(
               enabled: isEditable,
