@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:bl_crm_poc_app/data/services/cloud_services.dart';
 import 'package:bl_crm_poc_app/models/note.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -27,6 +27,8 @@ class FirebaseService {
 
     note.audioUrl = audioUrl;
     await documentReference.set(note.toMap());
+    print("=========audioUrl=====${audioUrl}=====${note.id}=====$uid==========================");
+    await CloudService.transcribeAudioNote(uid, note.id, audioUrl);
     return "success";
   }
 
@@ -55,7 +57,7 @@ class FirebaseService {
         .collection("notes")
         .doc(note.id);
     reference.delete();
-      return "success";
+    return "success";
   }
 
   static Future<String> uploadAudioToStorage(
