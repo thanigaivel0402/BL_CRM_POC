@@ -10,13 +10,17 @@ admin.initializeApp();
 const client = new speech.SpeechClient();
 
 // This function is triggered manually — not by upload
-exports.transcribeExistingAudio = functions.https.onCall(async (data, context) => {
+exports.transcribeExistingAudio = functions.https.onCall(async (request, context) => {
+    console.log("Raw incoming data:", JSON.stringify(request.data));
+    console.log("Context auth:", context.auth);
     try {
-        const { userId, noteId, audioUrl } = data;
 
-        console.debug(userId, noteId, audioUrl);
+        const { userId, noteId, audioUrl } = request.data || {};
+
+        console.log("Parsed:", { userId, noteId, audioUrl });
 
         if (!userId || !audioUrl || !noteId) {
+            console.error("Missing parameters:", { userId, noteId, audioUrl });
             throw new Error("Missing docId or audioUrl or userId");
         }
 
@@ -31,7 +35,7 @@ exports.transcribeExistingAudio = functions.https.onCall(async (data, context) =
 
         const audio = { content: audioBytes };
         const config = {
-            encoding: "MP3", // use LINEAR16 for WAV or FLAC for FLAC files
+            encoding: "LINEAR16",
             languageCode: "en-US",
             enableAutomaticPunctuation: true,
         };
