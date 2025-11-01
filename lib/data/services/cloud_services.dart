@@ -10,6 +10,11 @@ class CloudService {
       'transcribeExistingAudio',
     );
 
+    print("Calling transcribeExistingAudio with:");
+    print("userId: $userId");
+    print("noteId: $noteId");
+    print("audioUrl: $audioUrl");
+
     try {
       final result = await callable.call({
         'userId': userId,

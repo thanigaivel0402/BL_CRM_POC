@@ -128,9 +128,14 @@ class _RecordingPageState extends State<RecordingPage> {
 
   Future<void> startRecording() async {
     Directory appDir = await getApplicationDocumentsDirectory();
-    filePath = '${appDir.path}/my_record.m4a';
+    filePath = '${appDir.path}/my_record.wav';
     await audioRecorder.start(
-      const RecordConfig(encoder: AudioEncoder.aacLc),
+      const RecordConfig(
+        encoder: AudioEncoder.wav,
+        bitRate: 128000,
+        sampleRate: 16000,
+        numChannels: 1,
+      ),
       path: filePath,
     );
     setState(() => isRecording = true);
@@ -157,8 +162,12 @@ class _RecordingPageState extends State<RecordingPage> {
         );
         try {
           await FirebaseService.addNote(note, filePath);
+          context.pop();
         } catch (e) {
-          print('========${e.toString()}================');
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.toString())));
+          context.pop();
         }
       } else {
         ScaffoldMessenger.of(

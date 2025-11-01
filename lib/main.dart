@@ -31,6 +31,9 @@ Future<void> main() async {
       androidProvider: AndroidProvider.debug,
       appleProvider: AppleProvider.debug,
     );
+
+    final token = await FirebaseAppCheck.instance.getToken(true);
+    print('App Check token: $token');
   }
 
   runApp(const MyApp());
