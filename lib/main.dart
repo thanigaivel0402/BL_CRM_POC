@@ -1,5 +1,6 @@
 import 'package:bl_crm_poc_app/routes/app_routes.dart';
 import 'package:bl_crm_poc_app/utils/app_preferences.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,11 @@ Future<void> main() async {
     } else {
       await Firebase.initializeApp();
     }
+
+    FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.debug,
+      appleProvider: AppleProvider.debug,
+    );
   }
 
   runApp(const MyApp());
