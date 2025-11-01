@@ -7,9 +7,7 @@ const os = require("os");
 
 admin.initializeApp();
 
-const client = new speech.SpeechClient({
-    keyFilename: path.join(__dirname, "service-account.json"),
-});
+const client = new speech.SpeechClient();
 
 // This function is triggered manually — not by upload
 exports.transcribeExistingAudio = functions.https.onCall(async (data, context) => {
