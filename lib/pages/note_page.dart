@@ -15,22 +15,24 @@ class NotePage extends StatefulWidget {
 }
 
 class _NotePageState extends State<NotePage> {
-  late TextEditingController titleController;
-  late TextEditingController descController;
+  late TextEditingController meetingTypeController;
+  late TextEditingController transcriptController;
 
   bool isEditable = false;
 
   @override
   void initState() {
-    titleController = TextEditingController(text: widget.note.meetingType);
-    descController = TextEditingController(text: widget.note.transcript);
+    meetingTypeController = TextEditingController(
+      text: widget.note.meetingType,
+    );
+    transcriptController = TextEditingController(text: widget.note.transcript);
     super.initState();
   }
 
   @override
   void dispose() {
-    titleController.dispose();
-    descController.dispose();
+    meetingTypeController.dispose();
+    transcriptController.dispose();
     super.dispose();
   }
 
@@ -41,6 +43,7 @@ class _NotePageState extends State<NotePage> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
+        backgroundColor: const Color(0xFF0072BC),
         actionsPadding: EdgeInsets.only(right: screenHeight / 40),
         leading: Padding(
           padding: EdgeInsets.all(screenHeight / 40),
@@ -48,7 +51,11 @@ class _NotePageState extends State<NotePage> {
             onTap: () {
               context.pop();
             },
-            child: Icon(Icons.arrow_back, size: screenHeight / 40),
+            child: Icon(
+              Icons.arrow_back,
+              size: screenHeight / 40,
+              color: Colors.white,
+            ),
           ),
         ),
         actions: [
@@ -60,7 +67,7 @@ class _NotePageState extends State<NotePage> {
                       isEditable = false;
                     });
                   },
-                  child: Text("Cancel", style: TextStyle(color: Colors.blue)),
+                  child: Text("Cancel", style: TextStyle(color: Colors.white)),
                 )
               : InkWell(
                   onTap: () {
@@ -77,18 +84,8 @@ class _NotePageState extends State<NotePage> {
           isEditable
               ? SizedBox()
               : InkWell(
-                  onTap: () {
-                    try {
-                      FirebaseService.delete(widget.note);
-                      context.pop();
-                    } catch (e) {
-                      debugPrint(e.toString());
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Something Went Wrong ! Try Again"),
-                        ),
-                      );
-                    }
+                  onTap: () async {
+                    await showDeleteConfirmation();
                   },
                   child: CustomIconButton(
                     icon: Icons.delete_outline,
@@ -113,14 +110,14 @@ class _NotePageState extends State<NotePage> {
           children: [
             TextFormField(
               enabled: isEditable,
-              controller: titleController,
+              controller: meetingTypeController,
               cursorColor: Colors.black,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: screenHeight / 30,
               ),
               decoration: InputDecoration(
-                hintText: "Title",
+                hintText: "Meeting Type",
                 hintStyle: TextStyle(
                   fontSize: screenHeight / 30,
                   color: Colors.black38,
@@ -131,7 +128,7 @@ class _NotePageState extends State<NotePage> {
 
             TextFormField(
               enabled: isEditable,
-              controller: descController,
+              controller: transcriptController,
               maxLines: 10,
               cursorColor: Colors.black,
               style: TextStyle(
@@ -139,7 +136,7 @@ class _NotePageState extends State<NotePage> {
                 fontSize: screenHeight / 40,
               ),
               decoration: InputDecoration(
-                hintText: "SubTitle",
+                hintText: "Transcription",
                 hintStyle: TextStyle(
                   fontSize: screenHeight / 40,
                   color: Colors.black38,
@@ -152,7 +149,8 @@ class _NotePageState extends State<NotePage> {
                 ? GestureDetector(
                     onTap: () {
                       try {
-                        widget.note.transcript = descController.text;
+                        widget.note.meetingType = meetingTypeController.text;
+                        widget.note.transcript = transcriptController.text;
                         FirebaseService.editNote(widget.note);
                         context.pop();
                       } catch (e) {
@@ -191,6 +189,41 @@ class _NotePageState extends State<NotePage> {
       ),
     );
   }
+
+  showDeleteConfirmation() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Are you sure ?"),
+          content: Text("You want to Delete this Note"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                context.pop();
+              },
+              child: Text("No"),
+            ),
+            TextButton(
+              onPressed: () {
+                try {
+                  FirebaseService.delete(widget.note);
+                  context.pop();
+                  context.pop();
+                } catch (e) {
+                  debugPrint(e.toString());
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Something Went Wrong ! Try Again")),
+                  );
+                }
+              },
+              child: Text("Yes"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 // ignore: must_be_immutable
@@ -208,7 +241,7 @@ class CustomIconButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       padding: EdgeInsets.all(10),
-      child: Icon(icon, size: iconSize),
+      child: Icon(icon, size: iconSize, color: Colors.white),
     );
   }
 }

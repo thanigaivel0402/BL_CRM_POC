@@ -21,16 +21,18 @@ class _RecordingPageState extends State<RecordingPage> {
   bool isRecording = false;
   String filePath = '';
 
+  bool isSaving = false;
+
   late GlobalKey<FormState> _formKey;
 
-  late TextEditingController titleController;
-  late TextEditingController subTitleController;
+  late TextEditingController meetingWithController;
+  late TextEditingController meetingTypeController;
 
   @override
   void initState() {
     super.initState();
-    titleController = TextEditingController();
-    subTitleController = TextEditingController();
+    meetingWithController = TextEditingController();
+    meetingTypeController = TextEditingController();
     _formKey = GlobalKey<FormState>();
   }
 
@@ -55,13 +57,13 @@ class _RecordingPageState extends State<RecordingPage> {
                 validator: Validations.validateTitle,
                 textAlign: TextAlign.center,
 
-                controller: titleController,
+                controller: meetingWithController,
                 style: TextStyle(
                   fontSize: screenHeight / 40,
                   color: Colors.black,
                 ),
                 decoration: InputDecoration(
-                  hintText: "Title",
+                  hintText: "Meeting With",
                   hintStyle: TextStyle(
                     fontSize: screenHeight / 40,
                     color: Colors.black26,
@@ -71,7 +73,7 @@ class _RecordingPageState extends State<RecordingPage> {
               ),
               TextFormField(
                 validator: Validations.validateSubTitle,
-                controller: subTitleController,
+                controller: meetingTypeController,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: screenHeight / 60,
@@ -82,7 +84,7 @@ class _RecordingPageState extends State<RecordingPage> {
                     fontSize: screenHeight / 60,
                     color: Colors.black26,
                   ),
-                  hintText: "SubTitle",
+                  hintText: "Meeting Type",
                   border: InputBorder.none,
                 ),
               ),
@@ -98,27 +100,42 @@ class _RecordingPageState extends State<RecordingPage> {
                 ),
               ),
               SizedBox(height: screenHeight / 80),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      context.pop();
-                    },
-                    child: Text("Cancel"),
-                  ),
-                  ElevatedButton(
-                    onPressed: isRecording ? stopRecording : startRecording,
-                    child: Text(isRecording ? 'Pause' : 'Start'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await save();
-                    },
-                    child: Text("Save"),
-                  ),
-                ],
-              ),
+              isSaving
+                  ? Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 5),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            context.pop();
+                          },
+                          child: Text("Cancel"),
+                        ),
+                        ElevatedButton(
+                          onPressed: isRecording
+                              ? stopRecording
+                              : startRecording,
+                          child: Text(isRecording ? 'Pause' : 'Start'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            setState(() {
+                              isSaving = true;
+                            });
+                            await save();
+                            setState(() {
+                              isSaving = false;
+                            });
+                          },
+                          child: Text("Save"),
+                        ),
+                      ],
+                    ),
             ],
           ),
         ),
@@ -157,11 +174,12 @@ class _RecordingPageState extends State<RecordingPage> {
           id: "",
           eventDate: DateTime.now(),
           transcript: "",
-          meetingType: titleController.text,
-          meetingWith: subTitleController.text,
+          meetingType: meetingTypeController.text,
+          meetingWith: meetingWithController.text,
         );
         try {
           await FirebaseService.addNote(note, filePath);
+          await FirebaseService.fetchNotes();
           context.pop();
         } catch (e) {
           ScaffoldMessenger.of(

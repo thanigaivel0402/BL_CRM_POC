@@ -27,7 +27,9 @@ class FirebaseService {
 
     note.audioUrl = audioUrl;
     await documentReference.set(note.toMap());
-    print("=========audioUrl=====${audioUrl}=====${note.id}=====$uid==========================");
+    print(
+      "=========audioUrl=====${audioUrl}=====${note.id}=====$uid==========================",
+    );
     await CloudService.transcribeAudioNote(uid, note.id, audioUrl);
     return "success";
   }
@@ -41,11 +43,27 @@ class FirebaseService {
         .collection("notes")
         .doc(note.id);
     reference.update({
-      'meetingWith': note.meetingWith,
       'meetingType': note.meetingType,
       'transcript': note.transcript,
     });
     return "Success";
+  }
+
+  static Future<List<Note>> fetchNotes() async {
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+    var uid = _auth.currentUser?.uid;
+    var notesRef = _fireStore
+        .collection("users")
+        .doc(uid)
+        .collection("notes")
+        .orderBy('eventDate', descending: true);
+
+    QuerySnapshot snapShot = await notesRef.get();
+    final notes = snapShot.docs
+        .map((doc) => Note.fromMap(doc.data() as Map<String, dynamic>))
+        .toList();
+
+    return notes;
   }
 
   static String delete(Note note) {
