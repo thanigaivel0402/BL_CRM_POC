@@ -1,8 +1,9 @@
+import 'package:bl_crm_poc_app/data/services/auth_service.dart';
+import 'package:bl_crm_poc_app/data/services/firebase_service.dart';
 import 'package:bl_crm_poc_app/models/note.dart';
-import 'package:bl_crm_poc_app/pages/add_note_screen.dart';
 import 'package:bl_crm_poc_app/pages/recording_page.dart';
+import 'package:bl_crm_poc_app/utils/app_preferences.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -18,6 +19,19 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  late Future<List<Note>> _notes;
+
+  Future<List<Note>> _fetchNotes() async {
+    await Future.delayed(const Duration(seconds: 1));
+    return await FirebaseService.fetchNotes();
+  }
+
+  // 👇 Refresh logic
+  Future<void> _refreshNotes() async {
+    setState(() {
+      _notes = _fetchNotes();
+    });
+  }
 
   void _startSearch() {
     setState(() => _isSearching = true);
@@ -32,13 +46,18 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _notes = _fetchNotes();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final notesRef = FirebaseFirestore.instance.collection('notes');
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: theme.colorScheme.primary,
+        backgroundColor: const Color(0xFF0072BC),
         title: !_isSearching
             ? const Text('My Notes', style: TextStyle(color: Colors.white))
             : Container(
@@ -84,9 +103,11 @@ class _DashboardPageState extends State<DashboardPage> {
           if (!_isSearching)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white),
-              onSelected: (value) {
+              onSelected: (value) async {
                 if (value == 'logout') {
-                  // TODO: Implement logout logic
+                  AuthService().signOut();
+                  await AppPreferences.setLoggedIn(false);
+                  context.push('/login');
                 }
               },
               itemBuilder: (context) => const [
@@ -96,130 +117,138 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
 
-      // ✅ Real-time Firestore Stream
-      body: StreamBuilder<QuerySnapshot>(
-        stream: notesRef.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text('❌ Error loading notes. Check Firebase connection.'),
-            );
-          }
+      body: RefreshIndicator(
+        onRefresh: _refreshNotes,
+        child: FutureBuilder<List<Note>>(
+          future: _notes,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(
+                child: Text(
+                  '❌ Error loading notes. Check Firebase connection.',
+                ),
+              );
+            }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('📝 No notes yet.'));
-          }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('📝 No notes yet.'));
+            }
 
-          // 🔎 Apply search filter
-          var notes = snapshot.data!.docs;
-          if (_searchQuery.isNotEmpty) {
-            notes = notes.where((note) {
-              final title = (note['title'] ?? '').toString().toLowerCase();
-              final content = (note['content'] ?? '').toString().toLowerCase();
-              return title.contains(_searchQuery) ||
-                  content.contains(_searchQuery);
-            }).toList();
-          }
+            // 🔎 Apply search filter
+            var notes = snapshot.data!;
 
-          // 📱 Show Grid View
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // two per row
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1,
-              ),
-              itemCount: notes.length,
-              itemBuilder: (context, index) {
-                final note = notes[index];
-                // 🕓 Format timestamp
-                final timestamp = note['time'];
-                String formattedDate = '';
-                if (timestamp != null && timestamp is Timestamp) {
-                  formattedDate = DateFormat(
-                    'dd MMM yyyy, hh:mm a',
-                  ).format(timestamp.toDate());
-                } else {
-                  formattedDate = 'Unknown date';
-                }
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddNoteScreen(
-                          noteId: note.id,
-                          existingTitle: note['title'],
-                          existingContent: note['content'],
-                        ),
+            if (_searchQuery.isNotEmpty) {
+              notes = notes.where((note) {
+                final title = (note.meetingWith).toString().toLowerCase();
+                final content = (note.meetingType).toString().toLowerCase();
+                return title.contains(_searchQuery) ||
+                    content.contains(_searchQuery);
+              }).toList();
+            }
+
+            // 📱 Show Grid View
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, // two per row
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.8,
+                ),
+                itemCount: notes.length,
+                itemBuilder: (context, index) {
+                  final note = notes[index];
+                  // 🕓 Format timestamp
+                  final timestamp = note.eventDate;
+                  print("===timeStamp=====$timestamp===========");
+                  String formattedDate = '';
+                  if (timestamp != null) {
+                    formattedDate = DateFormat(
+                      'dd MMM yyyy, hh:mm a',
+                    ).format(timestamp);
+                  } else {
+                    formattedDate = 'Unknown date';
+                  }
+                  return GestureDetector(
+                    onTap: () {
+                      context.push("/note-page", extra: note);
+                    },
+                    child: Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  },
-                  child: Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    color: Colors.amber.shade50,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            note['title'] ?? 'Untitled',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: Text(
-                              note['content'] ?? '',
+                      color: Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              note.meetingWith,
                               style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
                               ),
-                              maxLines: 6,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: Text(
-                              formattedDate,
+                            const SizedBox(height: 8),
+                            Text(
+                              note.meetingType,
                               style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              child: Text(
+                                note.transcript,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 4,
                               ),
                             ),
-                          ),
-                        ],
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: Text(
+                                formattedDate,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          );
-        },
+                  );
+                },
+              ),
+            );
+          },
+        ),
       ),
 
       floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF0072BC),
         onPressed: () async {
           await showRecording();
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

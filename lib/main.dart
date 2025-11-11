@@ -27,6 +27,8 @@ Future<void> main() async {
       await Firebase.initializeApp();
     }
 
+    runApp(const MyApp());
+
     FirebaseAppCheck.instance.activate(
       androidProvider: AndroidProvider.debug,
       appleProvider: AppleProvider.debug,
@@ -35,8 +37,6 @@ Future<void> main() async {
     final token = await FirebaseAppCheck.instance.getToken(true);
     print('App Check token: $token');
   }
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

@@ -20,7 +20,6 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
   User? user;
   bool _loading = false;
   String? _error;
-  
 
   /// ✅ Cross-platform Google Sign-In (Android / iOS / Web)
   Future<void> signInWithGoogle() async {
@@ -123,7 +122,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(50),
-                      child: Image.asset(Assets.blLogo, fit: BoxFit.cover),
+                      child: Image.asset(Assets.blLogo, fit: BoxFit.contain),
                     ),
                   ),
 
