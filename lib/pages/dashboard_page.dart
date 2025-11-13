@@ -273,6 +273,7 @@ class _DashboardPageState extends State<DashboardPage> {
       ).showSnackBar(SnackBar(content: Text('Microphone permission denied')));
     } else {
       await showDialog(
+        barrierDismissible: false,
         context: context,
         builder: (context) {
           return RecordingPage();
