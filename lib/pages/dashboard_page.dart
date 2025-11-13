@@ -135,9 +135,15 @@ class _DashboardPageState extends State<DashboardPage> {
             }
 
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('📝 No notes yet.'));
+              // ✅ FIX — make it scrollable
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 250),
+                  Center(child: Text('📝 No notes yet.')),
+                ],
+              );
             }
-
             // 🔎 Apply search filter
             var notes = snapshot.data!;
 
