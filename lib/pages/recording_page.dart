@@ -120,7 +120,16 @@ class _RecordingPageState extends State<RecordingPage> {
                           onPressed: isRecording
                               ? stopRecording
                               : startRecording,
-                          child: Text(isRecording ? 'Pause' : 'Start'),
+                          child: isRecording
+                              ? Row(
+                                  children: [Text("Pause"), Icon(Icons.pause)],
+                                )
+                              : Row(
+                                  children: [
+                                    Text("Start"),
+                                    Icon(Icons.play_arrow),
+                                  ],
+                                ),
                         ),
                         ElevatedButton(
                           onPressed: () async {
